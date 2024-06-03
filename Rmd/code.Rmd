@@ -1,0 +1,108 @@
+---
+title: "code"
+output: word_document
+date: "2024-03-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+```
+
+
+```{r}
+library(patter)
+julia <- julia_connect()
+```
+
+```{r}
+# Define the study period 
+timeline <- seq(as.POSIXct("2023-01-01 12:00:00", tz = "UTC"),
+                as.POSIXct("2023-01-31 23:58:00", tz = "UTC"),
+                by = "2 mins")
+
+# Define the study site
+set_map(map)
+```
+
+
+```{r}
+moorings <- sim_array(.map = map,
+                      .timeline = timeline,
+                      .n_receiver = 100L,
+                      .arrangement = "regular", 
+                      .receiver_alpha = 4,
+                      .receiver_beta = -0.01,
+                      .receiver_gamma = 750)
+```
+
+
+```{r}
+# Define state type for a 2D random walk
+# (s_t = (s_(x, t), s_(y, t)))
+state <- "StateXY"
+
+# Define corresponding movement model that updates s_t
+# d_t ~ truncated(Gamma(1, 250.0), upper = 750.0)
+# a_t ~ Uniform(-pi, pi)
+model_move <- 
+  move_xy(dbn_length = "truncated(Gamma(1, 250.0), upper = 750.0)",
+          dbn_angle = "Uniform(-pi, pi)")
+
+# Simulate a path 
+# s_t = (s_(x, t-1) + d_t * cos(a_t), s_(y, t-1) + d_t * sin(a_t))
+path <- sim_path_walk(.map = map,
+                      .timeline = timeline,
+                      .state = state,
+                      .model_move = model_move, ...)
+```
+
+```{r}
+pars_acc <-
+  moorings |>
+  select(sensor_id = "receiver_id",
+         "receiver_x", "receiver_y",
+         "receiver_alpha", "receiver_beta", "receiver_gamma") |>
+  as.data.table()
+```
+
+```{r}
+data.table(sensor_id = 1L,
+           depth_shallow_eps = 0,
+           depth_deep_eps = 0)
+```
+
+
+```{r}
+data.table(sensor_id = 1L,
+           depth_shallow_eps = 20,
+           depth_deep_eps = 20)
+```
+
+```{r}
+model_obs <- c("ModelObsAcousticLogisTrunc","ModelObsDepthUniform")
+obs <- sim_observations(.timeline = timeline,
+                        .model_obs = model_obs,
+                        .model_obs_pars = list(...))
+```
+
+```{r}
+pf_filter(
+  .map = map,
+  .timeline = timeline,
+  .state = state,
+  .xinit = xinit,
+  .yobs = list(...),
+  .model_obs = model_obs,
+  .model_move = model_move,
+  .n_particle = 1e5L,
+  .direction = "forward", ...
+)
+```
+
+```{r}
+pf_smoother_two_filter(...)
+```
+
+```{r}
+
+```

@@ -1,0 +1,145 @@
+---
+title: "patter-cheatsheet-code-blocks"
+output: word_document
+date: "2024-03-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+```
+
+# Initialisation
+
+A. Load & attach `patter`:
+```{r}
+library(patter)
+```
+
+B. Initialise `patter`:
+```{r}
+julia_connect(JULIA_HOME, ...)
+```
+
+# Inputs
+
+## Real data
+
+A. Study area:
+
+```{r}
+map <- dat_gebco()
+set_map(map)
+```
+
+B. Example datasets:
+```{r}
+?`datasets-mefs`
+```
+
+C. Data assembly:
+```{r}
+assemble_*()
+```
+
+## Abstract types
+
+A. Define `State`
+```{r}
+?State
+```
+
+B. Define movement model
+```{r}
+?ModelMove
+```
+
+B. Define observation model(s):
+```{r}
+?ModelObs
+```
+
+## Simulate data
+
+A. Simulate receiver array(s):
+```{r}
+sim_array(.map,
+          .timeline,
+          .arrangement, 
+          .n_receiver, 
+          ...)
+```
+
+B. Simulate movement path(s):
+```{r}
+sim_path_walk(.map,
+              .timeline,
+              .state, 
+              .model_move, 
+              ...)
+```
+
+C. Simulate observation(s):
+```{r}
+sim_observations(.timeline, 
+                 .model_obs, 
+                 ...)
+```
+
+# Algorithms
+
+## Filter
+
+A. Run forward filter:
+```{r}
+pf_filter(.map, 
+          .timeline, 
+          .state, 
+          .yobs,
+          .model_move, 
+          .model_obs, ...)
+```
+
+B. (optional) Run backward filter:
+```{r}
+pf_filter(..., 
+          .direction = "backward")
+``` 
+
+## Smoother
+
+A. Run forward & backward filter
+
+B. Run two-filter smoother:
+```{r}
+pf_smoother_two_filter()
+```
+
+## Utilities
+
+
+# Outputs
+
+A. Visualise particle histories:
+```{r}
+pf_plot_*(.map, 
+          .coord, ...)
+```
+
+B. Map UD(s):
+```{r}
+map_pou(.map, 
+        .coord, ...)
+map_dens(.map,
+         .coord, ...)
+```
+
+C. Map home ranges:
+```{r}
+map_hr_*(.map, ...)
+```
+
+## Paths 
+
+# To Do
+
+* specify Julia threads from R
