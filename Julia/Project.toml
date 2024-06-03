@@ -1,0 +1,7 @@
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+GeoArrays = "2fb1d81b-e6a0-5fc5-82e6-8e06903437ab"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+Patter = "faabfbac-af09-47ee-bc95-5e336c516b5a"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
