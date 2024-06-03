@@ -45,7 +45,7 @@ win   <- qs::qread(here_data("spatial", "win.qs"))
 
 #### Global settings & parameters
 op         <- options(terra.pal = rev(terrain.colors(256)))
-overwrite  <- TRUE
+overwrite  <- FALSE
 
 
 #########################
@@ -304,9 +304,9 @@ s <- pff_perfect$states
 # Confirm simulated and reconstructed locations match (at grid cell level)
 s[, cell_id := terra::cellFromXY(map, cbind(x, y))]
 paths[, cell_id := terra::cellFromXY(map, cbind(x, y))]
-# expect_equal(s$cell_id, paths$cell_id)
+expect_equal(s$cell_id, paths$cell_id)
 # Confirm map_value (depths) match
-# expect_equal(paths$map_value, s$map_value)
+expect_equal(paths$map_value, s$map_value)
 
 #### Visualise reconstructed path
 terra::plot(map, col = "lightgrey")
@@ -330,28 +330,50 @@ diag <-
             maxlp = min(maxlp)) |>
   as.data.table()
 
-#### ESS
+#### Plot diagnostics
+png(here_fig("diagnostics.png"),
+    height = 5, width = 7, units = "in", res = 600)
+pp <- set_par()
+
+## ESS
 # 500 particles should be sufficient to approximate a 2D distribution
 # Here, we have some time steps with fewer particles
 # But it is also the case at at some points there are few locations
 # ... for the animal (e.g., in a deep hole)
-pretty_plot(diag$timestep, diag$ess, type = "l")
-abline(h = 500, col = "red")
+xlim <- c(0, max(diag$timestep))
+min(diag$ess)
+axis_ls <- pretty_plot(diag$timestep, diag$ess,
+                       pretty_axis_args = list(pretty = list(n = 3), cex.axis = 0.7),
+                       xlim = xlim,
+                       xlab = "", ylab = "",
+                       type = "l")
+lines(range(diag$timestep), c(500, 500), col = "red", lty = 3)
+# add_detections(detections_imperfect$timestep, axis_ls[[2]]$lim[2])
 
-#### Filter diagnostics: maxlp
+## maxlp
 # Here, we are looking for any EXTREME low values
 # Note that in reality there may be time steps where the simulated animal behaved in an unlikely way
+par(new = TRUE)
 exp(min(diag$maxlp))
-pretty_plot(diag$timestep, diag$maxlp, type = "l")
+pretty_plot(diag$timestep, diag$maxlp,
+            pretty_axis_args = list(side = c(1, 4),
+                                    pretty = list(n = 3),
+                                    axis = list(list(NULL), list(col = "blue", col.axis = "blue")),
+                                    cex.axis = 0.7),
+            xlim = xlim,
+            xlab = "", ylab = "",
+            col = "blue",
+            type = "l")
+
+par(pp)
+dev.off()
 
 #### Visualise probability distribution at selected time steps
 # Select particles from an example time step, t
 t <- 2
 s <- pff_imperfect$states
 s <- s[s$timestep == t, ]
-# Create an overall map
-# (TO DO)
-# Create a zoomed-in map (~1 s)
+# Create a quick zoomed-in map (~1 s)
 ud <- map_dens(terra::crop(map, terra::ext(min(s$x), max(s$x), min(s$y), max(s$y)) + 100),
                .coord = s,
                sigma = bw.diggle,
