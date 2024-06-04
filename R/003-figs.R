@@ -353,7 +353,7 @@ lapply(ss, function(s) {
   # Add map components
   terra::sbar(d = 500, halo = FALSE)
   terra::north(d = 500, xy = "topleft", lwd = 2)
-  # terra::lines(coast, col = "dimgrey", lwd = 0.5)
+  terra::lines(coast, col = "dimgrey", lwd = 0.5)
 }) |> invisible()
 par(pp)
 dev.off()
