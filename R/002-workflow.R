@@ -33,6 +33,7 @@ library(testthat)
 library(tictoc)
 julia_save <- patter:::julia_save
 julia_load <- patter:::julia_load
+julia_code <- patter:::julia_code
 dv::src()
 
 #### Load data
@@ -272,6 +273,29 @@ pfb_imperfect    <-
 expect_true(pfb_imperfect$convergence)
 expect_false(any(is.na(pfb_imperfect$states)))
 julia_load(here_data("filter", "pfb-imperfect.jld2"), "pbwd")
+
+#### Basic checks
+# Confirm that Julia and R outputs for the backward filter match at a selected time step
+julia_code(
+  '
+  s = pbwd.state[:, 2]
+  n = length(s)
+  x = [s[i].x for i in 1:n]
+  y = [s[i].y for i in 1:n]
+  '
+)
+x0 <- pfb_imperfect$states[timestep == 2, x]
+y0 <- pfb_imperfect$states[timestep == 2, y]
+x1 <- julia_eval("x")
+y1 <- julia_eval("y")
+expect_equal(x0, x1)
+expect_equal(y0, y1)
+pp <- par(mfrow = c(1, 2))
+terra::plot(map)
+points(x0, y0)
+terra::plot(map)
+points(x1, y1)
+par(pp)
 
 
 #########################
