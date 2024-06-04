@@ -303,8 +303,9 @@ dev.off()
 
 #### B: Particle samples at a selected time step (filter & smoother)
 png(here_fig("particles.png"),
-    height = 5, width = 5, units = "in", res = 600)
+    height = 5, width = 10, units = "in", res = 600)
 pp <- set_par(mfrow = c(1, 2))
+# pp <- set_par(mfrow = c(1, 3))
 t  <- 2L
 s1 <- pff_imperfect$states
 s1 <- s1[timestep == t, ]
@@ -316,7 +317,9 @@ xlim <- range(c(s1$x, s2$x))
 ylim <- range(c(s1$y, s2$y))
 xlim <- square(xlim, ylim)$xlim
 ylim <- square(xlim, ylim)$ylim
-lapply(list(s1, s2), function(s) {
+# ss <- list(s1, s3, s2)
+ss <- list(s1, s2)
+lapply(ss, function(s) {
   # Plot UD
   bb <- terra::ext(c(xlim, ylim))
   ud <- map_dens(terra::crop(map, bb + 100),
@@ -324,7 +327,21 @@ lapply(list(s1, s2), function(s) {
                  sigma = bw.diggle,
                  .plot = FALSE)
   ud <- ud / terra::global(ud, "max", na.rm = TRUE)[1, 1]
-  terra::plot(ud, smooth = TRUE, legend = FALSE)
+  terra::plot(ud,
+              xlim = xlim, ylim = ylim,
+              smooth = TRUE,
+              legend = FALSE,
+              axes = FALSE)
+  axis(side = 1, at = xlim, pos = ylim[1], labels = FALSE)
+  axis(side = 2, at = ylim, pos = xlim[1], labels = FALSE)
+  axis(side = 3, at = xlim, pos = ylim[2], labels = FALSE)
+  axis(side = 4, at = ylim, pos = xlim[2], labels = FALSE)
+  pretty_axis(side = 1:2,
+              lim = list(xlim, ylim),
+              pretty = list(n = 3),
+              control_sci_notation = list(magnitude = Inf, digits = 0L),
+              control_axis = list(las = FALSE, cex.axis = 0.9),
+              add = TRUE)
   # (optional) Add receivers
   # points(moorings$receiver_x, moorings$receiver_y,
   #        pch = 21, col = moorings$col, bg = moorings$col)
@@ -335,7 +352,7 @@ lapply(list(s1, s2), function(s) {
   points(paths$x[t], paths$y[t], col = "black", pch = 4, lwd = 2, cex = 1)
   # Add map components
   terra::sbar(d = 500, halo = FALSE)
-  terra::north(d = 100, "topleft", lwd = 2)
+  terra::north(d = 500, xy = "topleft", lwd = 2)
   # terra::lines(coast, col = "dimgrey", lwd = 0.5)
 }) |> invisible()
 par(pp)
