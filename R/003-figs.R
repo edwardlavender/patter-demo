@@ -368,6 +368,7 @@ xlim <- bb[1:2]
 ylim <- bb[3:4]
 # Plot map
 pp <- set_par()
+ud_raw <- terra::deepcopy(ud)
 ud <- ud / terra::global(ud, "max", na.rm = TRUE)[1, 1]
 terra::plot(ud, smooth = TRUE,
             axes = FALSE, legend = FALSE)
@@ -382,6 +383,8 @@ pretty_axis(side = 1:2,
             control_axis = list(las = FALSE, cex.axis = 0.9),
             add = TRUE)
 par(pp)
+# Add home range
+map_hr_core(ud_raw, .add = TRUE, lwd = 0.5)
 # Add coast
 terra::lines(coast, col = "dimgrey", lwd = 0.5)
 terra::lines(mpa, col = "darkblue", lwd = 2)
