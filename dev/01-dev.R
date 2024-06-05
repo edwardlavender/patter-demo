@@ -42,10 +42,10 @@ dv::use_template_proj()
 dv::use_template_gitignore()
 
 # Add a README and associated files
-usethis::use_code_of_conduct("insert_email_here")
+usethis::use_code_of_conduct("Edward Lavender")
 dv::use_template_readme(title = "README",
-                        author = "insert_name_here",
-                        email = "insert_email_here")
+                        author = "Edward Lavender",
+                        email = "edward.lavender@eawag.ch")
 
 # Add template scripts
 if (!requireNamespace("pacman", quietly = TRUE))
