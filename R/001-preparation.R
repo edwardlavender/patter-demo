@@ -25,6 +25,7 @@ library(dv)
 library(patter)
 library(testthat)
 library(tictoc)
+dv::src()
 
 #### Load data
 # (map   <- dat_gebco())
