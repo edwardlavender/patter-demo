@@ -38,15 +38,17 @@ dv::src()
 
 #### Load data
 # (map   <- dat_gebco())
-map   <- terra::rast(here_data("spatial", "map.tif"))
-mpa   <- terra::vect(readRDS(here_data("spatial", "mpa.rds")))
-coast <- readRDS(here_data("spatial", "coast.rds"))
-im    <- qs::qread(here_data("spatial", "im.qs"))
-win   <- qs::qread(here_data("spatial", "win.qs"))
+map    <- terra::rast(here_data("spatial", "map.tif"))
+map_ud <- terra::rast(here_data("spatial", "map-ud.tif"))
+mpa    <- terra::vect(readRDS(here_data("spatial", "mpa.rds")))
+coast  <- readRDS(here_data("spatial", "coast.rds"))
+im     <- qs::qread(here_data("spatial", "im.qs"))
+win    <- qs::qread(here_data("spatial", "win.qs"))
 
 #### Global settings & parameters
 op         <- options(terra.pal = rev(terrain.colors(256)))
 overwrite  <- FALSE
+tic()
 
 
 #########################
@@ -55,7 +57,7 @@ overwrite  <- FALSE
 
 #### Connect to Julia & set seed (~20 s)
 julia_connect(.threads = 10L)
-set_seed(1234L)
+set_seed(20240601L)
 
 #### Define map
 # Read the env = map.JLD2 directly for speed
@@ -217,6 +219,7 @@ saveRDS(archival_imperfect, here_data("sim", "archival-imperfect.rds"))
 #### Particle filter
 
 #### Define common filter arguments
+# Resample at every time step for maxlp figure
 pargs <- list(.map = map,
              .timeline = timeline,
              .model_obs = model_obs,
@@ -397,32 +400,52 @@ dev.off()
 t <- 2
 s <- pff_imperfect$states
 s <- s[s$timestep == t, ]
+# Define zoomed map
+map_zoom <- terra::crop(map_ud, # map_ud
+                        terra::ext(min(s$x), max(s$x), min(s$y), max(s$y)) + 100)
+terra::plot(map_zoom)
+points(s$x, s$y)
 # Create a quick zoomed-in map (~1 s)
-ud <- map_dens(terra::crop(map, terra::ext(min(s$x), max(s$x), min(s$y), max(s$y)) + 100),
+# sigma: bw.diggle, bw.CvL, bw.scott, bw.ppl.
+# * bw.diggle: fragmented
+# * bw.CvL: oversmoothed
+# * bw.scott: ok
+# * bw.ppl: looks best
+ud <- map_dens(map_zoom,
                .coord = s,
-               sigma = bw.diggle,
-               .plot = FALSE)
-terra::plot(ud, smooth = TRUE)
-points(s$x + runif(nrow(s), -10, 10), s$y + runif(nrow(s), -10, 10), pch = ".")
+               .discretise = FALSE,
+               sigma = bw.ppl,
+               .plot = FALSE)$ud
+terra::plot(ud)
+points(s$x, s$y, pch = ".")
 points(paths$x[t], paths$y[t], pch = 4, cex = 3, lwd = 3, col = "red")
 terra::lines(coast)
 
-#### Visualise UD
-# 282.276 s (4.70 mins) with `.discretise = FALSE`
-ud <-
-  run(file = here_data("ud", "ud-raw.tif"),
-      overwrite = overwrite,
-      expr = {
-        map_dens(map,
-                 .im = im,
-                 .owin = win,
-                 .coord = smo$states,
-                 .discretise = FALSE,
-                 sigma = bw.diggle)
-      },
-      read = terra::rast,
-      write = terra::writeRaster
-  )
+#### Estimate UD
+# Timings:
+# * 282.276 s (4.70 mins) at 100 x 100 m resolution (bw.diggle)
+# * 4954.309 s (1.38 hours) at 5 x 5 m resolution (bw.diggle)
+# Define sigma options
+# * We exclude bw.CvL since it typically oversmooths
+shortcut <- list()
+sigmas <- list(bw.diggle = bw.diggle,
+               bw.scott = bw.scott,
+               bw.ppl = bw.ppl)
+tic()
+for (i in seq_len(length(sigmas))) {
+  outfile  <- here_data("ud", paste0("ud-", names(sigmas)[i], ".tif"))
+  if (!file.exists(outfile) | overwrite) {
+    shortcut <- map_dens(.map = map_ud,
+                         .im = im,
+                         .owin = win,
+                         .coord = smo$states, # smo$states[1:10, ],
+                         .shortcut = shortcut,
+                         sigma = sigmas[[i]])
+    terra::writeRaster(shortcut$ud, outfile, overwrite = TRUE)
+  }
+  cat("\n\n")
+}
+toc()
 
 #### Extract positions in MPA
 if (isTRUE(overwrite)) {
@@ -438,14 +461,15 @@ if (isTRUE(overwrite)) {
   # * A point outside the MPA returns N/A for fishing:
   terra::extract(mpa, cbind(680540.6, 6238276))$fishing
 
-  # Estimate the true time spent in the MPA
+  # Estimate the true time spent in the MPA (~17 s)
   tic()
   paths[, mpa := terra::extract(mpa, cbind(x, y))$fishing]
   toc()
 
-  # Estimate the time spend in the MPA from particles
+  # Estimate the time spend in the MPA from particles (~4.49 hours)
   tic()
   s <- copy(smo$states)
+  s[, mpa := terra::extract(mpa, cbind(x, y))$fishing]
   toc()
 
   # Write data.table(s) to file
@@ -463,15 +487,17 @@ if (isTRUE(overwrite)) {
 #### Compare true & estimated time spent in MPA
 # > Number of path coordinates in the MPA / number of path coordinates in total
 length(which(paths$mpa %in% c("open", "closed"))) / nrow(paths)
-# 0.7195811
+# 0.3627505
 length(which(paths$mpa %in% "closed")) / nrow(paths)
-# 0.6706284
+# 0.3537796
 # > Number of particles in the MPA / total number of particles
 length(which(s$mpa %in% c("open", "closed"))) / nrow(s)
-# 0.7163756
+# 0.3695122
 length(which(s$mpa %in% "closed")) / nrow(s)
-# 0.6781602
+# 0.3595391
 
+
+toc()
 
 #### End of code.
 #########################
