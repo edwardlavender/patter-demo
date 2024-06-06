@@ -50,7 +50,7 @@ archival_imperfect   <- readRDS(here_data("sim", "archival-imperfect.rds"))
 pff_imperfect        <- readRDS(here_data("filter", "pff-imperfect.rds"))
 pfb_imperfect        <- readRDS(here_data("filter", "pfb-imperfect.rds"))
 tff                  <- readRDS(here_data("smoother", "tff.rds"))
-ud                   <- terra::rast(here_data("ud", "ud-raw.tif"))
+# ud                   <- terra::rast(here_data("ud", "ud-raw.tif"))
 
 #### Global settings & parameters
 op         <- options(terra.pal = rev(terrain.colors(256)))
@@ -147,7 +147,10 @@ pretty_axis(side = 1:2,
             add = TRUE)
 par(pp)
 # Add simulated path
+# * Note the blank spatPoints() here
+# * This is necessary for the paths to be added in the correct place!
 col_path <- viridis::inferno(nrow(paths), direction = -1)
+spatPoints(paths$x, paths$y, col = NA)
 add_sp_path(paths$x, paths$y, length = 0.01, lwd = 0.25,
             col = col_path)
 # Add coast
@@ -155,9 +158,7 @@ terra::lines(coast, col = "dimgrey", lwd = 0.5)
 terra::lines(mpa, col = "darkblue", lwd = 2)
 # Add receivers & origin
 terra::plot(moorings_vect, col = moorings_vect$col, border = moorings_vect$col, add = TRUE)
-points(moorings$receiver_x, moorings$receiver_y,
-       pch = 21, col = moorings$col, bg = moorings$col)
-points(xinit$x, xinit$y, col = "black", pch = 4, lwd = 3)
+spatPoints(xinit$x, xinit$y, col = "black", pch = 4, lwd = 3)
 # Add scale bars
 terra::sbar(d = 5000, xy = cbind(714500, 6225700), halo = FALSE)
 terra::north(d = 4000, xy = cbind(676060.1, 6276000), lwd = 2)
@@ -293,11 +294,6 @@ add_sp_path(paths$x, paths$y, length = 0.01, lwd = 0.25,
 # Add coast
 terra::lines(coast, col = "dimgrey", lwd = 0.5)
 terra::lines(mpa, col = "darkblue", lwd = 2)
-# Add receivers & origin
-# terra::plot(moorings_vect, col = moorings_vect$col, border = moorings_vect$col, add = TRUE)
-# points(moorings$receiver_x, moorings$receiver_y,
-#        pch = 21, col = moorings$col, bg = moorings$col)
-# points(xinit$x, xinit$y, col = "black", pch = 4, lwd = 3)
 # Add scale bars
 terra::sbar(d = 5000, xy = cbind(714500, 6225700), halo = FALSE)
 terra::north(d = 4000, xy = cbind(676060.1, 6276000), lwd = 2)
@@ -351,14 +347,11 @@ lapply(ss, function(s) {
               control_sci_notation = list(magnitude = Inf, digits = 0L),
               control_axis = list(las = FALSE, cex.axis = 0.9),
               add = TRUE)
-  # (optional) Add receivers
-  # points(moorings$receiver_x, moorings$receiver_y,
-  #        pch = 21, col = moorings$col, bg = moorings$col)
   # Add particles
-  points(s$x, s$y,
-         pch = ".", col = scales::alpha("black", 0.25))
+  spatPoints(s$x, s$y,
+             pch = ".", col = scales::alpha("black", 0.25))
   # Add true location
-  points(paths$x[t], paths$y[t], col = "black", pch = 4, lwd = 2, cex = 1)
+  spatPoints(paths$x[t], paths$y[t], col = "black", pch = 4, lwd = 2, cex = 1)
   # Add map components
   terra::sbar(d = 500, halo = FALSE)
   terra::north(d = 500, xy = "topleft", lwd = 2)
