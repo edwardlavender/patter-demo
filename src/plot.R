@@ -59,3 +59,24 @@ square <- function(xlim, ylim) {
   ylim      <- mean(ylim) + c(-0.5, 0.5) * max_range
   list(xlim = xlim, ylim = ylim)
 }
+
+#' Add gridlines around raster cells
+
+spatGrid <- function(x, ...) {
+  # Define grid line positions
+  r <- terra::res(x)
+  h <- r[1]
+  v <- r[2]
+  bb <- terra::ext(x)
+  xc <- seq(bb[1], bb[2], by = h)
+  yc <- seq(bb[3], bb[4], by = v)
+  # Add vertical grid lines
+  for (i in seq_len(length(xc))) {
+    lines(rep(xc[i], 2), bb[3:4], ...)
+  }
+  # Add horizontal grid lines
+  for (i in seq_len(length(yc))) {
+    lines(bb[1:2], rep(yc[i], 2), ...)
+  }
+  invisible(NULL)
+}
