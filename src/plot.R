@@ -4,6 +4,15 @@ set_par <- function(...) {
   par(mgp = c(3, 0.25, 0), tcl = -0.25, ...)
 }
 
+#' Add points to a map
+
+spatPoints <- function(x, y, ...) {
+  # Use terra::plot() to add points to a map for safety
+  # (with points(), points may be misplaced when par() is set)
+  terra::plot(terra::vect(cbind(x, y), crs = "EPSG:32629"),
+              ..., add = TRUE)
+}
+
 #' Add distribution polygons
 
 add_dbn <- function(x, y,
