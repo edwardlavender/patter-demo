@@ -31,16 +31,18 @@ library(prettyGraphics)
 library(spatstat.explore)
 library(truncdist)
 library(testthat)
+library(tictoc)
 dv::src()
 add_sp_path <- patter:::add_sp_path
 
 #### Load data
-map <- terra::rast(here_data("spatial", "map-negative.tif"))
-mpa   <- terra::vect(readRDS(here_data("spatial", "mpa.rds")))
-coast <- readRDS(here_data("spatial", "coast.rds"))
-paths      <- readRDS(here_data("sim", "paths.rds"))
-xinit      <- readRDS(here_data("sim", "xinit.rds"))
-moorings   <- readRDS(here_data("sim", "moorings.rds"))
+map    <- terra::rast(here_data("spatial", "map-negative.tif"))
+map_ud <- terra::rast(here_data("spatial", "map-ud.tif"))
+mpa    <- terra::vect(readRDS(here_data("spatial", "mpa.rds")))
+coast  <- readRDS(here_data("spatial", "coast.rds"))
+paths    <- readRDS(here_data("sim", "paths.rds"))
+xinit    <- readRDS(here_data("sim", "xinit.rds"))
+moorings <- readRDS(here_data("sim", "moorings.rds"))
 detections_perfect   <- readRDS(here_data("sim", "detections-perfect.rds"))
 detections_imperfect <- readRDS(here_data("sim", "detections-imperfect.rds"))
 archival_perfect     <- readRDS(here_data("sim", "archival-perfect.rds"))
@@ -129,7 +131,7 @@ ylim <- bb[3:4]
 # Plot map
 pp <- set_par()
 terra::plot(map,
-            col = bathy_cols,
+            col = bathy_cols, smooth = TRUE,
             xlim = xlim, ylim = ylim,
             range = bathy_zlim,
             axes = FALSE)
@@ -302,11 +304,12 @@ terra::north(d = 4000, xy = cbind(676060.1, 6276000), lwd = 2)
 dev.off()
 
 #### B: Particle samples at a selected time step (filter & smoother)
+tic()
 png(here_fig("particles.png"),
     height = 5, width = 10, units = "in", res = 600)
 pp <- set_par(mfrow = c(1, 2))
 # pp <- set_par(mfrow = c(1, 3))
-t  <- 2L
+t  <- 503L
 s1 <- pff_imperfect$states
 s1 <- s1[timestep == t, ]
 s2 <- tff$states
@@ -321,11 +324,17 @@ ylim <- square(xlim, ylim)$ylim
 ss <- list(s1, s2)
 lapply(ss, function(s) {
   # Plot UD
+  # s <- s2
+  # bw.diggle: ok but insufficient smoothing (~3 s)
+  # bw.CvL: massive oversmoothing (~3 s)
+  # bw.scott: ok, relatively smooth (~3 s)
+  # bw.ppl: better (~42 s)
+  # > Use bw.scott (ok & fast) or bw.ppl (best but slow)
   bb <- terra::ext(c(xlim, ylim))
-  ud <- map_dens(terra::crop(map, bb + 100),
+  ud <- map_dens(terra::crop(map_ud, bb + 100),
                  .coord = s,
-                 sigma = bw.diggle,
-                 .plot = FALSE)
+                 sigma = bw.CvL,
+                 .plot = FALSE)$ud
   ud <- ud / terra::global(ud, "max", na.rm = TRUE)[1, 1]
   terra::plot(ud,
               xlim = xlim, ylim = ylim,
@@ -345,8 +354,8 @@ lapply(ss, function(s) {
   # (optional) Add receivers
   # points(moorings$receiver_x, moorings$receiver_y,
   #        pch = 21, col = moorings$col, bg = moorings$col)
-  # Add particles (jittered)
-  points(s$x + runif(nrow(s), -10, 10), s$y + runif(nrow(s), -10, 10),
+  # Add particles
+  points(s$x, s$y,
          pch = ".", col = scales::alpha("black", 0.25))
   # Add true location
   points(paths$x[t], paths$y[t], col = "black", pch = 4, lwd = 2, cex = 1)
@@ -357,6 +366,7 @@ lapply(ss, function(s) {
 }) |> invisible()
 par(pp)
 dev.off()
+toc()
 
 #### D: Utilisation distribution & home ranges
 # (Map code tweaked from above)
