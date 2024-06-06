@@ -17,7 +17,7 @@ fextract <- function(.x, .coord, .col, .res = NULL) {
       .coord[, x := plyr::round_any(x, .res)]
       .coord[, y := plyr::round_any(y, .res)]
     }
-    .coord[, id := rleid(x, y)]
+    .coord[, id := .GRP, by = list(x, y)]
   } else {
     rlang::abort("`.x` must be a `SpatRaster` or a `SpatVector`.")
   }
