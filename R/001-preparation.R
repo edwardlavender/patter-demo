@@ -28,7 +28,8 @@ library(tictoc)
 
 #### Load data
 # (map   <- dat_gebco())
-map   <- terra::rast(here_data("spatial", "bathy.tif"))
+bathy <- terra::rast(here_data("spatial", "bathy.tif"))
+map   <- terra::deepcopy(bathy)
 mpa   <- terra::vect(readRDS(here_data("spatial", "mpa.rds")))
 
 #### Global settings & parameters
@@ -90,14 +91,20 @@ tic()
 set_map(map)
 toc()
 
+#### Use high resolution map for UD estimation
+map_ud <- terra::crop(bathy, terra::ext(map))
+
 #### Write map(s) to file
-terra::writeRaster(map * -1,
-                   here_data("spatial", "map-negative.tif"),
-                   overwrite = TRUE)
+patter:::julia_save("env", here_data("spatial", "map.JLD2"))
 terra::writeRaster(map,
                    here_data("spatial", "map.tif"),
                    overwrite = TRUE)
-patter:::julia_save("env", here_data("spatial", "map.JLD2"))
+terra::writeRaster(map * -1,
+                   here_data("spatial", "map-negative.tif"),
+                   overwrite = TRUE)
+terra::writeRaster(map_ud,
+                   here_data("spatial", "map-ud.tif"),
+                   overwrite = TRUE)
 
 
 #### End of code.
