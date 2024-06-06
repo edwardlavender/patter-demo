@@ -42,10 +42,10 @@ map    <- terra::rast(here_data("spatial", "map.tif"))
 map_ud <- terra::rast(here_data("spatial", "map-ud.tif"))
 mpa    <- terra::vect(readRDS(here_data("spatial", "mpa.rds")))
 coast  <- readRDS(here_data("spatial", "coast.rds"))
-im     <- qs::qread(here_data("spatial", "im.qs"))
-win    <- qs::qread(here_data("spatial", "win.qs"))
+# win    <- qs::qread(here_data("spatial", "win.qs"))
 
 #### Global settings & parameters
+spatstat.options(npixel = 500)
 op         <- options(terra.pal = rev(terrain.colors(256)))
 overwrite  <- FALSE
 tic()
@@ -422,26 +422,72 @@ points(paths$x[t], paths$y[t], pch = 4, cex = 3, lwd = 3, col = "red")
 terra::lines(coast)
 
 #### Estimate UD
-# Timings:
-# * 282.276 s (4.70 mins) at 100 x 100 m resolution (bw.diggle)
-# * 4954.309 s (1.38 hours) at 5 x 5 m resolution (bw.diggle)
-# Define sigma options
-# * We exclude bw.CvL since it typically oversmooths
+
+## Timings:
+# * Building XYM: ~15 mins
+# * Building PPP: ~36 mins
+# * UD estimation:
+# - XXX hours:   bw.diggle, 500 pixels (total, including computation of XYM & ppp)
+# - XXX hours:   bw.scott, 500 pixels
+# - XXX hours:   bw.ppl, 500 pixels
+
+## (optional) Define restricted window around particles
+# Define window
+# * This helps massively with estimation speed
+win <- as.owin.fol(.poly = coast,
+                   .map = map_ud,
+                   .x = smo$states$x, .y = smo$states$y, .buffer = 2000)
+# Define blank SpatRaster onto which we can add the UD from the restricted window
+blank <- terra::deepcopy(map_ud)
+blank[blank > 0] <- 0
+# terra::plot(blank)
+
+## Define sigma options
+# * We exclude bw.CvL (for speed) since it typically oversmooths
 shortcut <- list()
+if (file.exists(here_data("ud", "x.rds")) & isFALSE(overwrite)) {
+  shortcut <- list(x = readRDS(here_data("ud", "x.rds")))
+}
 sigmas <- list(bw.diggle = bw.diggle,
                bw.scott = bw.scott,
                bw.ppl = bw.ppl)
+sigmas <- sigmas[2]
+
+## Estimate UDs
 tic()
 for (i in seq_len(length(sigmas))) {
   outfile  <- here_data("ud", paste0("ud-", names(sigmas)[i], ".tif"))
   if (!file.exists(outfile) | overwrite) {
-    shortcut <- map_dens(.map = map_ud,
-                         .im = im,
+
+    # Estimate UD
+    # * We have defined the pixel resolution via spatstat.options(npixel)
+    shortcut <- map_dens(.map = terra::deepcopy(map_ud),
                          .owin = win,
-                         .coord = smo$states, # smo$states[1:10, ],
+                         .coord = smo$states[1:10, ], # smo$states[1:10, ],
                          .shortcut = shortcut,
                          sigma = sigmas[[i]])
-    terra::writeRaster(shortcut$ud, outfile, overwrite = TRUE)
+
+    # Merge UD onto entire study area
+    ud <- terra::merge(shortcut$ud, blank)
+    terra::plot(ud)
+
+    # Visual check for specific region
+    if (FALSE) {
+      sbb <- terra::ext(c(range(smo$states$x[1:10]), range(smo$states$y[1:10]))) + 2500
+      x <- terra::crop(map_ud, sbb)
+      x <- terra::crop(shortcut$ud, sbb)
+      terra::plot(x)
+      spatGrid(x, lwd = 0.1)
+      spatPoints(smo$states$x[1:10], smo$states$y[1:10], cex = 2)
+      spatPoints(shortcut$x$x, shortcut$x$y, col = "red")
+    }
+
+    # Save outputs
+    if (i == 1L) {
+      saveRDS(shortcut$x, here_data("ud", "x.rds"))
+    }
+    terra::writeRaster(ud, outfile, overwrite = TRUE)
+
   }
   cat("\n\n")
 }
