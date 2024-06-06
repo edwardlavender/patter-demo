@@ -31,6 +31,7 @@ library(tictoc)
 bathy <- terra::rast(here_data("spatial", "bathy.tif"))
 map   <- terra::deepcopy(bathy)
 mpa   <- terra::vect(readRDS(here_data("spatial", "mpa.rds")))
+coast <- readRDS(here_data("spatial", "coast.rds"))
 
 #### Global settings & parameters
 op <- options(terra.pal = rev(terrain.colors(256)))
@@ -42,6 +43,7 @@ op <- options(terra.pal = rev(terrain.colors(256)))
 
 #### Connect to Julia (~20 s)
 julia_connect(.threads = "auto")
+set_seed()
 
 #### Pull map into memory (~4 s)
 tic()
@@ -91,21 +93,42 @@ tic()
 set_map(map)
 toc()
 
-#### Use high resolution map for UD estimation
+
+#########################
+#########################
+#### Prepare UD layers
+
+#### Use high resolution map for UD representation
+# > The UD is represented on this grid
 map_ud <- terra::crop(bathy, terra::ext(map))
 
-#### Write map(s) to file
+#### Define observation window
+# Define coast for study area
+# > spatstat estimates density across the observation window
+# > smaller observation windows should be faster
+win <- as.owin.fol(.poly = coast, .map = map_ud)
+
+
+#########################
+#########################
+#### Write layers to file
+
 patter:::julia_save("env", here_data("spatial", "map.JLD2"))
+
 terra::writeRaster(map,
                    here_data("spatial", "map.tif"),
                    overwrite = TRUE)
+
 terra::writeRaster(map * -1,
                    here_data("spatial", "map-negative.tif"),
                    overwrite = TRUE)
+
 terra::writeRaster(map_ud,
                    here_data("spatial", "map-ud.tif"),
                    overwrite = TRUE)
 
+qs::qsave(win,
+        here_data("spatial", "win.qs"))
 
 #### End of code.
 #########################
