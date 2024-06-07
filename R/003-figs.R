@@ -50,10 +50,11 @@ archival_imperfect   <- readRDS(here_data("sim", "archival-imperfect.rds"))
 pff_imperfect        <- readRDS(here_data("filter", "pff-imperfect.rds"))
 pfb_imperfect        <- readRDS(here_data("filter", "pfb-imperfect.rds"))
 tff                  <- readRDS(here_data("smoother", "tff.rds"))
-# ud                   <- terra::rast(here_data("ud", "ud-raw.tif"))
+ud                   <- terra::rast(here_data("ud", "ud-bw.diggle.tif"))
 
 #### Global settings & parameters
-op         <- options(terra.pal = rev(terrain.colors(256)))
+spatstat.options(npixel = 500)
+op <- options(terra.pal = rev(terrain.colors(256)))
 
 
 #########################
@@ -101,6 +102,12 @@ moorings_vect <-
   terra::vect(geom = c("x", "y")) |>
   terra::buffer(width = 750)
 
+#### UD sigma method
+pp <- par(mfrow = c(1, 2))
+terra::plot(terra::rast(here_data("ud", "ud-bw.diggle.tif")))
+terra::plot(terra::rast(here_data("ud", "ud-bw.scott.tif")))
+par(pp)
+
 
 #########################
 #########################
@@ -147,12 +154,11 @@ pretty_axis(side = 1:2,
             add = TRUE)
 par(pp)
 # Add simulated path
-# * Note the blank spatPoints() here
-# * This is necessary for the paths to be added in the correct place!
+# * Note the addition of blank spatPoints() is required for correct plotting of path
 col_path <- viridis::inferno(nrow(paths), direction = -1)
 spatPoints(paths$x, paths$y, col = NA)
 add_sp_path(paths$x, paths$y, length = 0.01, lwd = 0.25,
-            col = col_path)
+         col = col_path)
 # Add coast
 terra::lines(coast, col = "dimgrey", lwd = 0.5)
 terra::lines(mpa, col = "darkblue", lwd = 2)
@@ -289,6 +295,7 @@ pretty_axis(side = 1:2,
 par(pp)
 # Add simulated path
 col_path <- viridis::inferno(nrow(paths), direction = -1)
+spatPoints(paths$x, paths$y, col = NA)
 add_sp_path(paths$x, paths$y, length = 0.01, lwd = 0.25,
             col = col_path)
 # Add coast
@@ -316,20 +323,24 @@ xlim <- range(c(s1$x, s2$x))
 ylim <- range(c(s1$y, s2$y))
 xlim <- square(xlim, ylim)$xlim
 ylim <- square(xlim, ylim)$ylim
+if (FALSE) {
+  # Visualise location
+  terra::plot(map)
+  terra::plot(terra::ext(c(xlim, ylim)), add = TRUE, lwd = 2)
+}
 # ss <- list(s1, s3, s2)
 ss <- list(s1, s2)
 lapply(ss, function(s) {
   # Plot UD
   # s <- s2
-  # bw.diggle: ok but insufficient smoothing (~3 s)
-  # bw.CvL: massive oversmoothing (~3 s)
+  # bw.diggle: ok, insufficient smoothing (~3 s)
   # bw.scott: ok, relatively smooth (~3 s)
-  # bw.ppl: better (~42 s)
-  # > Use bw.scott (ok & fast) or bw.ppl (best but slow)
+  # bw.ppl: better, slow (~42 s)
+  # bw.CvL: massive oversmoothing (~3 s)
   bb <- terra::ext(c(xlim, ylim))
   ud <- map_dens(terra::crop(map_ud, bb + 100),
                  .coord = s,
-                 sigma = bw.CvL,
+                 sigma = bw.diggle,
                  .plot = FALSE)$ud
   ud <- ud / terra::global(ud, "max", na.rm = TRUE)[1, 1]
   terra::plot(ud,
@@ -388,6 +399,7 @@ pretty_axis(side = 1:2,
 par(pp)
 # Add home range
 map_hr_core(ud_raw, .add = TRUE, lwd = 0.5)
+# map_hr_home(ud_raw, .add = TRUE, lwd = 0.5)
 # Add coast
 terra::lines(coast, col = "dimgrey", lwd = 0.5)
 terra::lines(mpa, col = "darkblue", lwd = 2)
