@@ -13,6 +13,17 @@ spatPoints <- function(x, y, ...) {
               ..., add = TRUE)
 }
 
+#' Add paths to a map
+
+spatPath <- function(x, y, ...) {
+  n <- length(x)
+  p1 <- cbind(x, y)[1:(n - 1), ]
+  p2 <- cbind(x, y)[2:n, ]
+  x <- terra::vect(p1, crs = "EPSG:32629")
+  y <- terra::vect(p2, crs = "EPSG:32629")
+  terra::lines(x, y, arrows = TRUE, ...)
+}
+
 #' Add distribution polygons
 
 add_dbn <- function(x, y,
