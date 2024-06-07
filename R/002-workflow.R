@@ -424,12 +424,13 @@ terra::lines(coast)
 #### Estimate UD
 
 ## Timings:
-# * Building XYM: ~15 mins
-# * Building PPP: ~36 mins
+# * Building XYM: ~12 mins
+# * Building PPP: ~7 mins
 # * UD estimation:
-# - XXX hours:   bw.diggle, 500 pixels (total, including computation of XYM & ppp)
-# - XXX hours:   bw.scott, 500 pixels
-# - XXX hours:   bw.ppl, 500 pixels
+# - 28 mins:    bw.diggle, 500 pixels
+# - 19 secs:    bw.scott, 500 pixels
+# - >24 hours:  bw.ppl, 500 pixels (cancelled)
+# - NA          bw.CvL (not implemented, typically massively oversmooths)
 
 ## (optional) Define restricted window around particles
 # Define window
@@ -443,7 +444,6 @@ blank[blank > 0] <- 0
 # terra::plot(blank)
 
 ## Define sigma options
-# * We exclude bw.CvL (for speed) since it typically oversmooths
 shortcut <- list()
 if (file.exists(here_data("ud", "x.rds")) & isFALSE(overwrite)) {
   shortcut <- list(x = readRDS(here_data("ud", "x.rds")))
@@ -451,7 +451,6 @@ if (file.exists(here_data("ud", "x.rds")) & isFALSE(overwrite)) {
 sigmas <- list(bw.diggle = bw.diggle,
                bw.scott = bw.scott,
                bw.ppl = bw.ppl)
-sigmas <- sigmas[2]
 
 ## Estimate UDs
 tic()
@@ -463,7 +462,7 @@ for (i in seq_len(length(sigmas))) {
     # * We have defined the pixel resolution via spatstat.options(npixel)
     shortcut <- map_dens(.map = terra::deepcopy(map_ud),
                          .owin = win,
-                         .coord = smo$states[1:10, ], # smo$states[1:10, ],
+                         .coord = smo$states, # smo$states[1:10, ],
                          .shortcut = shortcut,
                          sigma = sigmas[[i]])
 
