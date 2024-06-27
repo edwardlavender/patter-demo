@@ -224,12 +224,16 @@ mtext(side = 2, "Density", line = 3.5)
 # Archival observations
 x <- seq(-25, 25, by = 0.1)
 y <- dunif(x, -20, 20)
-pretty_plot(x, y,
-            pretty_axis_args = paa,
-            xlab = "", ylab = "",
-            type = "l")
-lines(c(0, 0), c(0, max(y)), lty = 3)
-add_dbn(x, y)
+axis_ls <- pretty_plot(x, y,
+                       ylim = c(0, 0.04),
+                       pretty_axis_args = list(pretty = list(n = 2)),
+                       xlab = "", ylab = "",
+                       type = "n")
+# lines(c(0, 0), c(0, max(y)), lty = 3)
+px <- par(xpd = NA)
+arrows(0, 0, 0, 0.03, length = 0.1)
+par(px)
+add_dbn(x, y, border = "black", lty = 3)
 mtext(side = 1, "Distance (m)", line = 2)
 par(pp)
 dev.off()
