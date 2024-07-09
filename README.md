@@ -70,16 +70,22 @@ follows:
     - `workflow.R` simulates and analyses animal tracking datasets;
     - `figs.R` produces manuscript figures;
 
-4.  **`dev/`** contains project-management scripts.
+4.  **`src/`** contains helper (`R`) functions.
+
+5.  **`Julia/`** contains a `Julia` project.
+
+    - This is set up by `patter`;
+
+6.  **`dev/`** contains project-management scripts.
 
     - `01-dev.R` and `02-clone.R` are standard
       [`dv`](https://github.com/edwardlavender/dv) scripts:
       - `01-dev.R` records project set up and development;
       - `02-clone.R` is used to clone the project (see ‘Instructions’);
 
-5.  **`fig/`** contains figures.
+7.  **`fig/`** contains figures.
 
-6.  **`doc/`** contains supporting documents.
+8.  **`doc/`** contains supporting documents.
 
 Note that the `data/` (except `data/inst/`), `fig/` and `doc`
 directories are not provided in the online version of this repository.
