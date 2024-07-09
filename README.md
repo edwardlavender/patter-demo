@@ -104,6 +104,11 @@ workflow.
 
 3.  **Implement workflow** via `R` scripts.
 
+# Citation
+
+Lavender et al. (in prep). `patter`: particle algorithms for animal
+tracking in `R` and `Julia.`
+
 # Code of conduct
 
 Please note that this project is released with a [Contributor Code of

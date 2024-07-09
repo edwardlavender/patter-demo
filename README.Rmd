@@ -64,6 +64,10 @@ Follow the steps described below to clone the project and reproduce the workflow
 
 3.  **Implement workflow** via `R` scripts. 
 
+# Citation
+
+Lavender et al. (in prep). `patter`: particle algorithms for animal tracking in `R` and `Julia.`
+
 # Code of conduct
 
 Please note that this project is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/1/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.
