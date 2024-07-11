@@ -128,6 +128,14 @@ paths <-
 expect_true(all(!is.na(paths$map_value)))
 julia_load(here_data("sim", "paths.jld2"))
 
+#### (optional) UD for simulated path (~1 s)
+path_ud <- map_dens(.map = map,
+                    .coord = readRDS(here_data("sim", "paths.rds")),
+                    sigma = bw.diggle)$ud
+terra::writeRaster(path_ud,
+                   here_data("ud", "ud-path-bw.diggle.tif"),
+                   overwrite = TRUE)
+
 #### Define recapture location
 xinit_end <- paths[.N, .(map_value, x, y)]
 
