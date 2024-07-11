@@ -51,6 +51,7 @@ pff_imperfect        <- readRDS(here_data("filter", "pff-imperfect.rds"))
 pfb_imperfect        <- readRDS(here_data("filter", "pfb-imperfect.rds"))
 tff                  <- readRDS(here_data("smoother", "tff.rds"))
 ud                   <- terra::rast(here_data("ud", "ud-bw.diggle.tif"))
+ud_path              <- terra::rast(here_data("ud", "ud-path-bw.diggle.tif"))
 
 #### Global settings & parameters
 spatstat.options(npixel = 500)
@@ -312,17 +313,13 @@ dev.off()
 
 #### B: Particle samples at a selected time step (filter & smoother)
 tic()
-png(here_fig("particles.png"),
-    height = 5, width = 10, units = "in", res = 600)
-pp <- set_par(mfrow = c(1, 2))
-# pp <- set_par(mfrow = c(1, 3))
 t  <- 503L
 s1 <- pff_imperfect$states
 s1 <- s1[timestep == t, ]
 s2 <- tff$states
 s2 <- s2[timestep == t, ]
-# s3 <- pfb_imperfect$states
-# s3 <- s3[timestep == t, ]
+s3 <- pfb_imperfect$states
+s3 <- s3[timestep == t, ]
 xlim <- range(c(s1$x, s2$x))
 ylim <- range(c(s1$y, s2$y))
 xlim <- square(xlim, ylim)$xlim
@@ -332,8 +329,14 @@ if (FALSE) {
   terra::plot(map)
   terra::plot(terra::ext(c(xlim, ylim)), add = TRUE, lwd = 2)
 }
-# ss <- list(s1, s3, s2)
+png(here_fig("particles.png"),
+    height = 5, width = 10, units = "in", res = 600)
+pp <- set_par(mfrow = c(1, 2))
 ss <- list(s1, s2)
+# png(here_fig("particles-fbs.png"),
+#    height = 5, width = 10, units = "in", res = 600)
+# pp <- set_par(mfrow = c(1, 3))
+# ss <- list(s1, s3, s2)
 lapply(ss, function(s) {
   # Plot UD
   # s <- s2
@@ -380,6 +383,9 @@ toc()
 # (Map code tweaked from above)
 png(here_fig("ud.png"),
     height = 5, width = 5, units = "in", res = 600)
+# png(here_fig("ud-path.png"),
+#    height = 5, width = 5, units = "in", res = 600)
+# ud <- terra::deepcopy(ud_path)
 # Define region of interest
 bb <- terra::ext(map)
 xlim <- bb[1:2]
@@ -412,8 +418,59 @@ terra::sbar(d = 5000, xy = cbind(714500, 6225700), halo = FALSE)
 terra::north(d = 4000, xy = cbind(676060.1, 6276000), lwd = 2)
 dev.off()
 
+
 #### E-F: Particle diagnostics
 # > See workflow.R
+
+
+#########################
+#########################
+#### Extension (animation)
+
+#### Set up plots
+tic()
+steps   <- paths$timestep
+routine <- "forward-filter"
+# routine    <- "smoother"
+if (routine == "forward-filter") {
+  s <- pff_imperfect$states[timestep %in% steps, ]
+}
+if (routine == "smoother") {
+  s       <- tff$states[timestep %in% steps, ]
+}
+p       <- paths[timestep %in% steps, ]
+xlim    <- range(c(s$x, p$x))
+ylim    <- range(c(s$y, p$y))
+map_ani <- terra::crop(map, terra::ext(c(xlim, ylim)))
+toc()
+
+#### Make frames (~26 mins)
+tic()
+pbo    <- pbapply::pboptions(nout = 25)
+frames <- here_fig("animation", routine, "frames")
+pf_plot_xy(.map = map_ani,
+           .steps = steps,
+           .coord = s,
+           .add_points = list(pch = "."),
+           .add_layer = function(.t) {
+             points(p$x[p$timestep == .t], p$y[p$timestep == .t],
+                    col = "red", lwd = 2)
+             terra::lines(coast, col = "dimgrey", lwd = 0.5)
+             terra::lines(mpa, col = "darkblue", lwd = 2)
+           },
+           .png = list(filename = frames,
+                       height = 4, width = 4, units = "in", res = 300),
+           .cl = 12L, .chunk = TRUE
+           )
+pbapply::pboptions(pbo)
+toc()
+
+#### Make animation (~6 mins)
+tic()
+input   <- file_list(frames)
+output  <- file.path(dirname(frames), "ani.mp4")
+av::av_encode_video(input, output, framerate = 1000)
+toc()
 
 
 #### End of code.
