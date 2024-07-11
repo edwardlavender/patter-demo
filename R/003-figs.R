@@ -431,7 +431,7 @@ dev.off()
 tic()
 steps   <- paths$timestep
 routine <- "forward-filter"
-# routine    <- "smoother"
+routine    <- "smoother"
 if (routine == "forward-filter") {
   s <- pff_imperfect$states[timestep %in% steps, ]
 }
@@ -465,11 +465,21 @@ pf_plot_xy(.map = map_ani,
 pbapply::pboptions(pbo)
 toc()
 
-#### Make animation (~6 mins)
+#### Make full animation (~6 mins)
 tic()
 input   <- file_list(frames)
 output  <- file.path(dirname(frames), "ani.mp4")
 av::av_encode_video(input, output, framerate = 1000)
+toc()
+
+#### Make subsampled animation (~40 s)
+# A slower framerate with fewer frames is better in pptx
+tic()
+input   <- file_list(frames)
+input   <- input[seq(1, length(input), by = 10)]
+output  <- file.path(dirname(frames), "ani-subsample-fs=25.mp4")
+length(input)
+av::av_encode_video(input, output, framerate = 25)
 toc()
 
 
