@@ -112,8 +112,9 @@ workflow.
 
 # Citation
 
-Lavender et al. (in prep). `patter`: particle algorithms for animal
-tracking in `R` and `Julia.`
+Lavender et al. (2025). `patter`: particle algorithms for animal
+tracking in `R` and `Julia.` Methods in Ecology and Evolution, 00, 1–8.
+<https://doi.org/10.1111/2041-210X.70029>
 
 # Code of conduct
 
